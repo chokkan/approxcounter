@@ -104,7 +104,6 @@ public:
     };
 
 public:
-    typedef key_type key_t;
     typedef std::map<key_t, item_t*> keys_t;
 
     count_t m_m;
@@ -154,7 +153,7 @@ protected:
 public:
     void append(const key_t& key)
     {
-        keys_t::iterator it = m_keys.find(key);
+        typename keys_t::iterator it = m_keys.find(key);
         if (it != m_keys.end()) {
             // Increment the counter.
             this->increment(it->second);
@@ -182,7 +181,7 @@ public:
     void debug(std::ostream& os)
     {
         os << "[keys]" << std::endl;
-        for (keys_t::const_iterator it = m_keys.begin();it != m_keys.end();++it) {
+        for (typename keys_t::const_iterator it = m_keys.begin();it != m_keys.end();++it) {
             os << it->first << ": " << it->second->parent->count << "(" << it->second->eps << ")" << std::endl;
         }
 
