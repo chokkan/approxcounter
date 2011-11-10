@@ -17,9 +17,6 @@ int main(int argc, char *argv[])
             break;
         }
         ++n;
-        if (n == 297) {
-            os << "OK";
-        }
         counter.append(line);
     }
 
