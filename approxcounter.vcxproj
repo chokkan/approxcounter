@@ -77,6 +77,8 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="exact.h" />
+    <ClInclude Include="optparse.h" />
     <ClInclude Include="spacesaving.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

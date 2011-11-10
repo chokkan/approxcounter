@@ -142,11 +142,7 @@ protected:
 
 protected:
     /// A mapping type: key -> *item.
-#ifdef __MSC_VER
-    typedef std::tr1::unordered_map<key_type, item_type*> keys_t;
-#else
     typedef std::unordered_map<key_type, item_type*> keys_t;
-#endif
     /// The mapping object: key -> *item.
     keys_t m_keys;
     /// The maximum number of counters.
