@@ -31,28 +31,102 @@
 #ifndef __SPACESAVING_H__
 #define __SPACESAVING_H__
 
-typedef unsigned int count_t;
-
-#include <map>
+#include <unordered_map>
 #include <cassert>
 
-template <class key_type>
-class stream_summary
+/**
+ * Space-saving algorithm.
+ *  @param  key_tmpl        Key type.
+ *  @param  count_tmpl      Count type.
+ */
+template <class key_tmpl, class count_tmpl=int>
+class spacesaving
 {
 public:
-    typedef key_type key_t;
+    /// Key type.
+    typedef key_tmpl key_type;
+    /// Count type.
+    typedef count_tmpl count_type;
+    /// This class.
+    typedef spacesaving<key_tmpl, count_tmpl> this_type;
 
-    struct item_t;
+protected:
+    struct bucket_t;
+
+public:
+    /**
+     * A count item.
+     *  This class implements a doubly-linked list of count items.
+     */
+    class item_type
+    {
+        friend class this_type;
+
+    protected:
+        key_type key;       ///< The key
+        count_type eps;     ///< Epsilon (maximum overestimation of the count)
+        bucket_t *parent;   ///< Pointer to the bucket owning this item.
+        item_type *prev;    ///< Pointer to the previous item.
+        item_type *next;    ///< Pointer to the next item.
+
+    public:
+        /**
+         * Constructs a count item.
+         *  @param  e       The epsilon value.
+         */
+        item_type(count_type e=0)
+            : eps(e), parent(NULL), prev(NULL), next(NULL)
+        {
+        }
+
+        /**
+         * Constructs a count item.
+         *  @param  key     The key.
+         *  @param  e       The epsilon value.
+         */
+        item_type(const key_type& k, count_type e=0)
+            : key(k), eps(e), parent(NULL), prev(NULL), next(NULL)
+        {
+        }
+
+        /**
+         * Gets the key.
+         *  @return key_type&   the reference to the key.
+         */
+        const key_type& get_key() const
+        {
+            return this->key;
+        }
+
+        /**
+         * Gets the count of the key.
+         *  @return count_type  the count.
+         */
+        count_type get_count() const
+        {
+            return parent->count;
+        }
+
+        /**
+         * Gets the epsilon (maximum overestimation) of the count.
+         *  @return count_type  the epsilon value.
+         */
+        count_type get_epsilon() const
+        {
+            return this->eps;
+        }
+    };
 
 protected:
     /**
-     * Doubly-linked list of buckets.
+     * A bucket storing items with the same count.
+     *  This class implements a doubly-linked list of buckets.
      */
     struct bucket_t
     {
-        count_t count;      ///< Item count.
-        item_t *head;       ///< Pointer to the first item.
-        item_t *tail;       ///< Pointer to the last item.
+        count_type count;   ///< Item count.
+        item_type *head;    ///< Pointer to the first item.
+        item_type *tail;    ///< Pointer to the last item.
         bucket_t *prev;     ///< Pointer to the previous bucket.
         bucket_t *next;     ///< Pointer to the next bucket.
 
@@ -60,67 +134,40 @@ protected:
          * Constructs a bucket.
          *  @param  c       The count value.
          */
-        bucket_t(count_t c=0) :
+        bucket_t(count_type c=0) :
             count(c), head(NULL), tail(NULL), prev(NULL), next(NULL)
         {
         }
     };
 
-public:
-    /**
-     * Doubly-linked list of items.
-     */
-    struct item_t
-    {
-        key_t key;          ///< The key
-        count_t eps;        ///< Epsilon (the maximum error of the count)
-        bucket_t *parent;   ///< Pointer to the bucket owning this item.
-        item_t *prev;       ///< Pointer to the previous item.
-        item_t *next;       ///< Pointer to the next item.
-
-        /**
-         * Constructs a bucket.
-         *  @param  e       The epsilon value.
-         */
-        item_t(count_t e=0)
-            : eps(e), parent(NULL), prev(NULL), next(NULL)
-        {
-        }
-
-        /**
-         * Constructs a bucket.
-         *  @param  key     The key.
-         *  @param  e       The epsilon value.
-         */
-        item_t(const key_t& k, count_t e=0)
-            : key(k), eps(e), parent(NULL), prev(NULL), next(NULL)
-        {
-        }
-
-        count_t get_count()
-        {
-            return parent->count;
-        }
-    };
-
-public:
-    typedef std::map<key_t, item_t*> keys_t;
-
-    count_t m_m;
+protected:
+    /// A mapping type: key -> *item.
+    typedef std::tr1::unordered_map<key_type, item_type*> keys_t;
+    /// The mapping object: key -> *item.
     keys_t m_keys;
+    /// The maximum number of counters.
+    count_type m_m;
+    /// The pointer to the first bucket.
     bucket_t *m_root;
 
 public:
-    stream_summary(count_t m=4) : m_root(NULL), m_m(m)
+    /**
+     * Constructs an object.
+     *  @param  m       The maximum number of counters.
+     */
+    spacesaving(count_type m=4) : m_root(NULL), m_m(m)
     {
     }
 
-    virtual ~stream_summary()
+    /**
+     * Destructs the object.
+     */
+    virtual ~spacesaving()
     {
     }
 
 protected:
-    void increment(item_t* item)
+    void increment(item_type* item)
     {
         // The bucket storing the item.
         bucket_t *bucket = item->parent;
@@ -129,7 +176,7 @@ protected:
         detach_item(item);
 
         // Incremented count of the item.
-        count_t count = bucket->count+1;
+        count_type count = bucket->count+1;
 
         // Find the right bucket for storing the item (for the incremented count).
         if (bucket->next != NULL && bucket->next->count == count) {
@@ -151,25 +198,25 @@ protected:
     }
 
 public:
-    void append(const key_t& key)
+    void append(const key_type& key)
     {
         typename keys_t::iterator it = m_keys.find(key);
         if (it != m_keys.end()) {
             // Increment the counter.
             this->increment(it->second);
-        } else if (m_keys.size() < m_m) {
+        } else if ((count_type)m_keys.size() < m_m) {
             // Create an item and insert it into the root bucket.
             if (m_root == NULL || 1 < m_root->count) {
                 // Create the root (count=1) bucket.
                 m_root = new bucket_t(1);
             }
-            item_t *item = new item_t(key);
+            item_type *item = new item_type(key);
             append_item(m_root, item);
             m_keys[key] = item;
         } else {
             // The replacement step.
             bucket_t *bucket = m_root;
-            item_t *item = bucket->head;
+            item_type *item = bucket->head;
             m_keys.erase(item->key);
             item->key = key;
             item->eps = bucket->count;
@@ -189,7 +236,7 @@ public:
         os << "items {" << std::endl;
         for (;bucket != NULL;bucket = bucket->next) {
             os << "  count " << bucket->count << " {" << std::endl;
-            item_t *item = bucket->head;
+            item_type *item = bucket->head;
             for (;item != NULL;item = item->next) {
                 os << "    " << item->key << std::endl;
             }
@@ -198,7 +245,7 @@ public:
         os << "}" << std::endl;
     }
 
-    item_t *top()
+    item_type *top()
     {
         bucket_t *bucket = m_root;
         if (bucket != NULL) {
@@ -211,7 +258,16 @@ public:
         }
     }
 
-    item_t *next(item_t *cur)
+    item_type *back()
+    {
+        if (m_root != NULL) {
+            return m_root->head;
+        } else {
+            return NULL;
+        }
+    }
+
+    item_type *next(item_type *cur)
     {
         if (cur->prev != NULL) {
             return cur->prev;
@@ -226,10 +282,10 @@ public:
     }
 
 protected:
-    void detach_item(item_t *item)
+    void detach_item(item_type *item)
     {
-        item_t *prev = item->prev;
-        item_t *next = item->next;
+        item_type *prev = item->prev;
+        item_type *next = item->next;
         bucket_t *parent = item->parent;
         if (parent->head == item) {
             parent->head = next;
@@ -248,10 +304,10 @@ protected:
         item->next = NULL;
     }
 
-    void append_item(bucket_t *parent, item_t *item)
+    void append_item(bucket_t *parent, item_type *item)
     {
-        item_t *head = parent->head;
-        item_t *tail = parent->tail;
+        item_type *head = parent->head;
+        item_type *tail = parent->tail;
         if (tail == NULL) {
             item->prev = NULL;
             item->next = NULL;

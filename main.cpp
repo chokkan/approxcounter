@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 {
     std::istream& is = std::cin;
     std::ostream& os = std::cout;
-    typedef stream_summary<std::string> counter_t;
+    typedef spacesaving<std::string> counter_t;
     counter_t counter(1024);
 
     int n = 0;
@@ -20,10 +20,8 @@ int main(int argc, char *argv[])
         counter.append(line);
     }
 
-    counter_t::item_t *item = counter.top();
-    while (item != NULL) {
-        os << item->get_count() << '\t' << item->eps << '\t' << item->key << std::endl;
-        item = counter.next(item);
+    for (counter_t::item_type *item = counter.top();item != counter.back();item = counter.next(item)) {
+        os << item->get_count() << '\t' << item->get_epsilon() << '\t' << item->get_key() << std::endl;
     }
 
     return 0;
