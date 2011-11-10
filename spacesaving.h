@@ -34,6 +34,7 @@
 typedef unsigned int count_t;
 
 #include <map>
+#include <cassert>
 
 template <class key_type>
 class stream_summary
@@ -144,6 +145,7 @@ protected:
 
         // Remove the bucket if it is empty.
         if (bucket->head == NULL) {
+            assert(bucket->tail == NULL);
             erase_bucket(bucket);
             delete bucket;
         }
@@ -266,10 +268,14 @@ protected:
 
     void insert_bucket(bucket_t *first, bucket_t *second)
     {
+        bucket_t *next = first->next;
         if (first != NULL) {
-            second->next = first->next;
+            second->next = next;
             first->next = second;
             second->prev = first;
+            if (next != NULL) {
+                next->prev = second;
+            }
         } else {
             m_root = second;
             second->prev = NULL;

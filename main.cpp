@@ -9,11 +9,16 @@ int main(int argc, char *argv[])
     typedef stream_summary<std::string> counter_t;
     counter_t counter;
 
+    int n = 0;
     for (;;) {
         std::string line;
         std::getline(is, line);
         if (is.eof()) {
             break;
+        }
+        ++n;
+        if (n == 297) {
+            os << "OK";
         }
         counter.append(line);
     }
