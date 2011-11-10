@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
     std::istream& is = std::cin;
     std::ostream& os = std::cout;
     typedef stream_summary<std::string> counter_t;
-    counter_t counter;
+    counter_t counter(1024);
 
     for (;;) {
         std::string line;
