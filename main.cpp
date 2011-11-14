@@ -1,8 +1,11 @@
 #include <iostream>
 #include <string>
+#include <unordered_map>
+
 #include "optparse.h"
 #include "exact.h"
 #include "spacesaving.h"
+#include "tokenize.h"
 
 class option : public optparse
 {
@@ -10,9 +13,12 @@ public:
     bool help;
     std::string algorithm;
     int epsilon;
+    int token_field;
+    int freq_field;
 
 public:
-    option() : help(false), algorithm("exact"), epsilon(1024)
+    option()
+        : help(false), algorithm("exact"), epsilon(1024), token_field(0), freq_field(1)
     {
     }
 
@@ -74,6 +80,42 @@ int do_spacesaving(const option& opt)
     return 0;
 }
 
+int do_sum(const option& opt)
+{
+    typedef std::unordered_map<std::string, int> counter_t;
+    counter_t counter;
+
+    for (;;) {
+        std::string line;
+        std::getline(std::cin, line);
+        if (std::cin.eof()) {
+            break;
+        }
+
+        std::string token;
+        int k = 1, freq = 0;
+        tokenizer fields(line, '\t');
+        for (tokenizer::iterator it = fields.begin();it != fields.end();++it) {
+            if (k == opt.token_field) {
+                token = *it;
+            }
+            if (k == opt.freq_field) {
+                freq = std::atoi(it->c_str());
+            }
+            ++k;
+        }
+        
+        counter_t::iterator it = counter.find(token);
+        if (it != counter.end()) {
+            it->second += freq;
+        } else {
+            counter.insert(counter_t::value_type(token, freq));
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     option opt;
@@ -90,6 +132,8 @@ int main(int argc, char *argv[])
 
     if (opt.algorithm == "exact") {
         do_exact(opt);
+    } else if (opt.algorithm == "sum") {
+        do_sum(opt);
     } else if (opt.algorithm == "spacesaving") {
         do_spacesaving(opt);
     } else {
