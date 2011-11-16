@@ -62,9 +62,12 @@ int do_exact(const option& opt)
     counter_t counter;
     count(counter, std::cin);
 
+    int n = counter.total();
     counter_t::const_iterator it;
     for (it = counter.begin();it != counter.end();++it) {
-        std::cout << it->first << '\t' << it->second << std::endl;
+        if (it->second / (double)n >= opt.support) {
+            std::cout << it->first << '\t' << it->second << std::endl;
+        }
     }
 
     return 0;
