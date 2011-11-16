@@ -13,6 +13,7 @@ class option : public optparse
 public:
     bool help;
     std::string algorithm;
+    std::string type;
     int epsilon;
     int token_field;
     int freq_field;
@@ -20,7 +21,7 @@ public:
 
 public:
     option()
-        : help(false), algorithm("exact"), epsilon(1024),
+        : help(false), algorithm("exact"), type("uint32"), epsilon(1024),
         token_field(1), freq_field(2),
         support(1.)
     {
@@ -36,6 +37,9 @@ public:
         ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("support"))
             support = std::atof(arg);
 
+        ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("type"))
+            type = arg;
+
         ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
             help = true;
 
@@ -44,7 +48,7 @@ public:
 
 
 template <class counter_class>
-void count(counter_class& counter, std::istream& is)
+void count_data(counter_class& counter, std::istream& is)
 {
     for (;;) {
         std::string line;
@@ -56,13 +60,14 @@ void count(counter_class& counter, std::istream& is)
     }
 }
 
+template <class count_type>
 int do_exact(const option& opt)
 {
-    typedef exact<std::string> counter_t;
+    typedef exact<std::string, count_type> counter_t;
     counter_t counter;
-    count(counter, std::cin);
+    count_data(counter, std::cin);
 
-    int n = counter.total();
+    count_type n = counter.total();
     counter_t::const_iterator it;
     for (it = counter.begin();it != counter.end();++it) {
         if (it->second / (double)n >= opt.support) {
@@ -73,13 +78,14 @@ int do_exact(const option& opt)
     return 0;
 }
 
+template <class count_type>
 int do_spacesaving(const option& opt)
 {
-    typedef spacesaving<std::string> counter_t;
+    typedef spacesaving<std::string, count_type> counter_t;
     counter_t::item_type *item = NULL;
     counter_t counter(opt.epsilon);
 
-    count(counter, std::cin);
+    count_data(counter, std::cin);
     for (item = counter.top();item != counter.back();item = counter.next(item)) {
         std::cout <<
             item->get_key() << '\t' <<
@@ -90,11 +96,12 @@ int do_spacesaving(const option& opt)
     return 0;
 }
 
+template <class count_type>
 int do_sum(const option& opt)
 {
-    typedef std::unordered_map<std::string, uint64_t> counter_t;
+    typedef std::unordered_map<std::string, count_type> counter_t;
     counter_t counter;
-    uint64_t n = 0;
+    count_type n = 0;
 
     for (;;) {
         std::string line;
@@ -136,6 +143,21 @@ int do_sum(const option& opt)
     return 0;
 }
 
+template <class count_type>
+int count(const option& opt)
+{
+    if (opt.algorithm == "exact") {
+        return do_exact<count_type>(opt);
+    } else if (opt.algorithm == "sum") {
+        return do_sum<count_type>(opt);
+    } else if (opt.algorithm == "spacesaving") {
+        return do_spacesaving<count_type>(opt);
+    } else {
+        std::cerr << "ERROR: unrecognized algorithm: " << opt.algorithm << std::endl;
+        return 1;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     option opt;
@@ -150,15 +172,16 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (opt.algorithm == "exact") {
-        do_exact(opt);
-    } else if (opt.algorithm == "sum") {
-        do_sum(opt);
-    } else if (opt.algorithm == "spacesaving") {
-        do_spacesaving(opt);
+    if (opt.type == "uint16") {
+        return count<uint16_t>(opt);
+    } else if (opt.type == "uint32") {
+        return count<uint32_t>(opt);
+    } else if (opt.type == "uint64") {
+        return count<uint64_t>(opt);
     } else {
-        std::cerr << "ERROR: unrecognized algorithm: " << opt.algorithm << std::endl;
+        std::cerr << "ERROR: unrecognized type: " << opt.type << std::endl;
+        return 1;
     }
 
-    return 0;
+    return 1;
 }
