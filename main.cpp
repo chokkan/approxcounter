@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <stdint.h>
 
 #include "optparse.h"
 #include "exact.h"
@@ -15,11 +16,13 @@ public:
     int epsilon;
     int token_field;
     int freq_field;
+    double support;
 
 public:
     option()
         : help(false), algorithm("exact"), epsilon(1024),
-        token_field(1), freq_field(2)
+        token_field(1), freq_field(2),
+        support(1.)
     {
     }
 
@@ -29,6 +32,9 @@ public:
 
         ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("epsilon"))
             epsilon = std::atoi(arg);
+
+        ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("support"))
+            support = std::atof(arg);
 
         ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
             help = true;
@@ -83,8 +89,9 @@ int do_spacesaving(const option& opt)
 
 int do_sum(const option& opt)
 {
-    typedef std::unordered_map<std::string, int> counter_t;
+    typedef std::unordered_map<std::string, uint64_t> counter_t;
     counter_t counter;
+    uint64_t n = 0;
 
     for (;;) {
         std::string line;
@@ -112,11 +119,15 @@ int do_sum(const option& opt)
         } else {
             counter.insert(counter_t::value_type(token, freq));
         }
+
+        n += freq;
     }
 
     counter_t::const_iterator it;
     for (it = counter.begin();it != counter.end();++it) {
-        std::cout << it->first << '\t' << it->second << std::endl;
+        if (it->second / (double)n > opt.support) {
+            std::cout << it->first << '\t' << it->second << std::endl;
+        }
     }
 
     return 0;
