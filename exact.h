@@ -3,11 +3,11 @@
 
 #include <unordered_map>
 
-template <class key_tmpl, class count_tmpl=int>
-class exact : public std::unordered_map<key_tmpl, count_tmpl>
+template <class key_type, class count_type=int>
+class exact : public std::unordered_map<key_type, count_type>
 {
 public:
-    typedef std::unordered_map<key_tmpl, count_tmpl> this_class;
+    typedef std::unordered_map<key_type, count_type> base_class;
 
     exact()
     {
@@ -19,11 +19,11 @@ public:
 
     void append(const key_type& key)
     {
-        iterator it = this->find(key);
+        typename base_class::iterator it = this->find(key);
         if (it != this->end()) {
             ++it->second;
         } else {
-            this->insert(this_class::value_type(key, 1));
+            this->insert(typename base_class::value_type(key, 1));
         }
     }
 };

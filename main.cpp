@@ -18,7 +18,8 @@ public:
 
 public:
     option()
-        : help(false), algorithm("exact"), epsilon(1024), token_field(0), freq_field(1)
+        : help(false), algorithm("exact"), epsilon(1024),
+        token_field(1), freq_field(2)
     {
     }
 
@@ -111,6 +112,11 @@ int do_sum(const option& opt)
         } else {
             counter.insert(counter_t::value_type(token, freq));
         }
+    }
+
+    counter_t::const_iterator it;
+    for (it = counter.begin();it != counter.end();++it) {
+        std::cout << it->first << '\t' << it->second << std::endl;
     }
 
     return 0;
