@@ -80,7 +80,7 @@ int count_exact(const option& opt)
     count_data(counter, std::cin);
 
     double threshold = opt.absolute_support ? opt.support : opt.support * counter.total();
-    for (counter_t::const_iterator it = counter.begin();it != counter.end();++it) {
+    for (typename counter_t::const_iterator it = counter.begin();it != counter.end();++it) {
         if (it->second  >= threshold) {
             std::cout << it->first << '\t' << it->second << std::endl;
         }
@@ -93,7 +93,7 @@ template <class count_type>
 int count_spacesaving(const option& opt)
 {
     typedef spacesaving<std::string, count_type> counter_t;
-    counter_t::item_type *item = NULL;
+    typename counter_t::item_type *item = NULL;
     counter_t counter(opt.epsilon);
 
     count_data(counter, std::cin);
@@ -135,17 +135,17 @@ int do_sum(const option& opt)
             ++k;
         }
         
-        counter_t::iterator it = counter.find(token);
+        typename counter_t::iterator it = counter.find(token);
         if (it != counter.end()) {
             it->second += freq;
         } else {
-            counter.insert(counter_t::value_type(token, freq));
+            counter.insert(typename counter_t::value_type(token, freq));
         }
 
         n += freq;
     }
 
-    counter_t::const_iterator it;
+    typename counter_t::const_iterator it;
     for (it = counter.begin();it != counter.end();++it) {
         if (it->second / (double)n > opt.support) {
             std::cout << it->first << '\t' << it->second << std::endl;
