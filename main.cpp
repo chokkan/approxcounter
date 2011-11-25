@@ -145,9 +145,10 @@ int do_sum(const option& opt)
         n += freq;
     }
 
+    double threshold = opt.absolute_support ? opt.support : opt.support * n;
     typename counter_t::const_iterator it;
     for (it = counter.begin();it != counter.end();++it) {
-        if (it->second / (double)n > opt.support) {
+        if (it->second  >= threshold) {
             std::cout << it->first << '\t' << it->second << std::endl;
         }
     }
