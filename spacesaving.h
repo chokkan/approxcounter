@@ -145,6 +145,8 @@ protected:
     typedef std::unordered_map<key_type, item_type*> keys_t;
     /// The mapping object: key -> *item.
     keys_t m_keys;
+    /// The total frequency.
+    count_type m_n;
     /// The maximum number of counters.
     count_type m_m;
     /// The pointer to the first bucket.
@@ -155,7 +157,7 @@ public:
      * Constructs an object.
      *  @param  m       The maximum number of counters.
      */
-    spacesaving(count_type m=4) : m_root(NULL), m_m(m)
+    spacesaving(count_type m=4) : m_root(NULL), m_n(0), m_m(m)
     {
     }
 
@@ -223,6 +225,7 @@ public:
             this->increment(item);
             m_keys[key] = item;
         }
+        ++m_n;
     }
 
     void debug(std::ostream& os)
@@ -243,6 +246,11 @@ public:
             os << "  }" << std::endl;
         }
         os << "}" << std::endl;
+    }
+
+    count_type total() const
+    {
+        return m_n;
     }
 
     item_type *top()

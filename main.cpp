@@ -18,12 +18,13 @@ public:
     int token_field;
     int freq_field;
     double support;
+    bool absolute_support;
 
 public:
     option()
         : help(false), algorithm("exact"), type("uint32"), epsilon(1024),
         token_field(1), freq_field(2),
-        support(1.)
+        support(0.), absolute_support(false)
     {
     }
 
@@ -31,14 +32,25 @@ public:
         ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
             algorithm = arg;
 
-        ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("epsilon"))
-            epsilon = std::atoi(arg);
+        ON_OPTION_WITH_ARG(SHORTOPT('c') || LONGOPT("type"))
+            type = arg;
+
+        ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("token-field"))
+            token_field = std::atoi(arg);
+
+        ON_OPTION_WITH_ARG(SHORTOPT('f') || LONGOPT("freq-field"))
+            freq_field = std::atoi(arg);
 
         ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("support"))
             support = std::atof(arg);
+            absolute_support = false;
 
-        ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("type"))
-            type = arg;
+        ON_OPTION_WITH_ARG(SHORTOPT('S') || LONGOPT("absolute-support"))
+            support = std::atof(arg);
+            absolute_support = true;
+
+        ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("epsilon"))
+            epsilon = std::atoi(arg);
 
         ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
             help = true;
@@ -61,16 +73,15 @@ void count_data(counter_class& counter, std::istream& is)
 }
 
 template <class count_type>
-int do_exact(const option& opt)
+int count_exact(const option& opt)
 {
     typedef exact<std::string, count_type> counter_t;
     counter_t counter;
     count_data(counter, std::cin);
 
-    count_type n = counter.total();
-    counter_t::const_iterator it;
-    for (it = counter.begin();it != counter.end();++it) {
-        if (it->second / (double)n >= opt.support) {
+    double threshold = opt.absolute_support ? opt.support : opt.support * counter.total();
+    for (counter_t::const_iterator it = counter.begin();it != counter.end();++it) {
+        if (it->second  >= threshold) {
             std::cout << it->first << '\t' << it->second << std::endl;
         }
     }
@@ -79,13 +90,14 @@ int do_exact(const option& opt)
 }
 
 template <class count_type>
-int do_spacesaving(const option& opt)
+int count_spacesaving(const option& opt)
 {
     typedef spacesaving<std::string, count_type> counter_t;
     counter_t::item_type *item = NULL;
     counter_t counter(opt.epsilon);
 
     count_data(counter, std::cin);
+    double threshold = opt.absolute_support ? opt.support : opt.support * counter.total();
     for (item = counter.top();item != counter.back();item = counter.next(item)) {
         std::cout <<
             item->get_key() << '\t' <<
@@ -147,11 +159,11 @@ template <class count_type>
 int count(const option& opt)
 {
     if (opt.algorithm == "exact") {
-        return do_exact<count_type>(opt);
+        return count_exact<count_type>(opt);
     } else if (opt.algorithm == "sum") {
         return do_sum<count_type>(opt);
     } else if (opt.algorithm == "spacesaving") {
-        return do_spacesaving<count_type>(opt);
+        return count_spacesaving<count_type>(opt);
     } else {
         std::cerr << "ERROR: unrecognized algorithm: " << opt.algorithm << std::endl;
         return 1;
