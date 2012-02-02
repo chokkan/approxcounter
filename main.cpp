@@ -110,43 +110,6 @@ int count_spacesaving(const option& opt)
     return 0;
 }
 
-template <class count_type>
-int do_sum_spacesaving(const option& opt)
-{
-    typedef spacesaving_PriorityQ<std::string, count_type> counter_t;
-    typename counter_t::item_type *item = NULL;
-    counter_t counter(opt.epsilon);
-	count_type n = 0;
-	
-	for (;;) {
-		//input data
-        std::string line;
-        std::getline(std::cin, line);
-        if (std::cin.eof()) {
-            break;
-        }
-		std::string token;
-        int k = 1, freq = 0;
-		//freq = 1; //for debug
-        tokenizer fields(line, '\t');
-        for (tokenizer::iterator it = fields.begin();it != fields.end();++it) {
-            if (k == opt.token_field) {
-                token = *it;
-            }
-            if (k == opt.freq_field) {
-                freq = std::atoi(it->c_str());
-            }
-            ++k;
-        }
-
-		counter.append(token,freq);
-		//std::cout<<token<<std::endl;
-		//counter.debug();
-		n+=freq;
-	}
-	
-	double threshold = opt.absolute_support ? opt.support : opt.support * n;
-	counter.showresult();
     return 0;
 }
 
@@ -206,8 +169,6 @@ int count(const option& opt)
         return do_sum<count_type>(opt);
     } else if (opt.algorithm == "spacesaving") {
         return count_spacesaving<count_type>(opt);
-	} else if (opt.algorithm == "sum_spacesaving") {
-		return do_sum_spacesaving<count_type>(opt);
     } else {
         std::cerr << "ERROR: unrecognized algorithm: " << opt.algorithm << std::endl;
         return 1;
