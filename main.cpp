@@ -6,7 +6,9 @@
 #include "optparse.h"
 #include "exact.h"
 #include "spacesaving.h"
+#include "spacesaving_PriorityQ.h"
 #include "tokenize.h"
+
 
 class option : public optparse
 {
@@ -19,42 +21,42 @@ public:
     int freq_field;
     double support;
     bool absolute_support;
-
+	
 public:
     option()
-        : help(false), algorithm("exact"), type("uint32"), epsilon(1024),
-        token_field(1), freq_field(2),
-        support(0.), absolute_support(false)
+	: help(false), algorithm("exact"), type("uint32"), epsilon(1024),
+	token_field(1), freq_field(2),
+	support(0.), absolute_support(false)
     {
     }
-
+	
     BEGIN_OPTION_MAP_INLINE()
-        ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
-            algorithm = arg;
-
-        ON_OPTION_WITH_ARG(SHORTOPT('c') || LONGOPT("type"))
-            type = arg;
-
-        ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("token-field"))
-            token_field = std::atoi(arg);
-
-        ON_OPTION_WITH_ARG(SHORTOPT('f') || LONGOPT("freq-field"))
-            freq_field = std::atoi(arg);
-
-        ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("support"))
-            support = std::atof(arg);
-            absolute_support = false;
-
-        ON_OPTION_WITH_ARG(SHORTOPT('S') || LONGOPT("absolute-support"))
-            support = std::atof(arg);
-            absolute_support = true;
-
-        ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("epsilon"))
-            epsilon = std::atoi(arg);
-
-        ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
-            help = true;
-
+	ON_OPTION_WITH_ARG(SHORTOPT('a') || LONGOPT("algorithm"))
+	algorithm = arg;
+	
+	ON_OPTION_WITH_ARG(SHORTOPT('c') || LONGOPT("type"))
+	type = arg;
+	
+	ON_OPTION_WITH_ARG(SHORTOPT('t') || LONGOPT("token-field"))
+	token_field = std::atoi(arg);
+	
+	ON_OPTION_WITH_ARG(SHORTOPT('f') || LONGOPT("freq-field"))
+	freq_field = std::atoi(arg);
+	
+	ON_OPTION_WITH_ARG(SHORTOPT('s') || LONGOPT("support"))
+	support = std::atof(arg);
+	absolute_support = false;
+	
+	ON_OPTION_WITH_ARG(SHORTOPT('S') || LONGOPT("absolute-support"))
+	support = std::atof(arg);
+	absolute_support = true;
+	
+	ON_OPTION_WITH_ARG(SHORTOPT('e') || LONGOPT("epsilon"))
+	epsilon = std::atoi(arg);
+	
+	ON_OPTION(SHORTOPT('h') || LONGOPT("help"))
+	help = true;
+	
     END_OPTION_MAP()
 };
 
@@ -69,6 +71,7 @@ void count_data(counter_class& counter, std::istream& is)
             break;
         }
         counter.append(line);
+		//counter.debug(std::cerr);
     }
 }
 
@@ -78,16 +81,17 @@ int count_exact(const option& opt)
     typedef exact<std::string, count_type> counter_t;
     counter_t counter;
     count_data(counter, std::cin);
-
+	
     double threshold = opt.absolute_support ? opt.support : opt.support * counter.total();
     for (typename counter_t::const_iterator it = counter.begin();it != counter.end();++it) {
         if (it->second  >= threshold) {
             std::cout << it->first << '\t' << it->second << std::endl;
         }
     }
-
+	
     return 0;
 }
+
 
 template <class count_type>
 int count_spacesaving(const option& opt)
@@ -95,15 +99,16 @@ int count_spacesaving(const option& opt)
     typedef spacesaving<std::string, count_type> counter_t;
     typename counter_t::item_type *item = NULL;
     counter_t counter(opt.epsilon);
-
     count_data(counter, std::cin);
     double threshold = opt.absolute_support ? opt.support : opt.support * counter.total();
     for (item = counter.top();item != counter.back();item = counter.next(item)) {
         std::cout <<
-            item->get_key() << '\t' <<
-            item->get_count() << '\t' <<
-            item->get_epsilon() << std::endl;
+		item->get_key() << '\t' <<
+		item->get_count() << '\t' <<
+		item->get_epsilon() << std::endl;
     }
+    return 0;
+}
 
 template <class count_type>
 int do_sum_spacesaving(const option& opt)
@@ -151,14 +156,14 @@ int do_sum(const option& opt)
     typedef std::unordered_map<std::string, count_type> counter_t;
     counter_t counter;
     count_type n = 0;
-
+	
     for (;;) {
         std::string line;
         std::getline(std::cin, line);
         if (std::cin.eof()) {
             break;
         }
-
+		
         std::string token;
         int k = 1, freq = 0;
         tokenizer fields(line, '\t');
@@ -178,10 +183,10 @@ int do_sum(const option& opt)
         } else {
             counter.insert(typename counter_t::value_type(token, freq));
         }
-
+		
         n += freq;
     }
-
+	
     double threshold = opt.absolute_support ? opt.support : opt.support * n;
     typename counter_t::const_iterator it;
     for (it = counter.begin();it != counter.end();++it) {
@@ -189,7 +194,6 @@ int do_sum(const option& opt)
             std::cout << it->first << '\t' << it->second << std::endl;
         }
     }
-
     return 0;
 }
 
@@ -210,9 +214,11 @@ int count(const option& opt)
     }
 }
 
+
+
 int main(int argc, char *argv[])
 {
-    option opt;
+	option opt;
 
     try { 
         int arg_used = opt.parse(argv, argc);
@@ -223,7 +229,7 @@ int main(int argc, char *argv[])
         std::cerr << "ERROR: " << e.what() << std::endl;
         return 1;
     }
-
+	
     if (opt.type == "uint16") {
         return count<uint16_t>(opt);
     } else if (opt.type == "uint32") {
@@ -234,6 +240,6 @@ int main(int argc, char *argv[])
         std::cerr << "ERROR: unrecognized type: " << opt.type << std::endl;
         return 1;
     }
-
+	
     return 1;
 }
